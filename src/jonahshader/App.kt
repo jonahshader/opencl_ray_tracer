@@ -11,12 +11,16 @@ import com.jogamp.opengl.util.Animator
 import com.jogamp.opengl.util.awt.TextRenderer
 import java.awt.*
 import java.awt.event.*
+import java.awt.event.KeyEvent.VK_CONTROL
+import java.awt.event.KeyEvent.VK_SPACE
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 
 class App(private var width: Int, private var height: Int) : GLEventListener {
     companion object {
@@ -32,15 +36,51 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
     private var canvas: GLCanvas = GLCanvas(GLCapabilities(GLProfile.get(GLProfile.GL2)))
 
     private var slices: Int = 0
-    private var drawSeperator = false
+    private var drawSeparator = false
     private var buffersInitialized = false
     private var rebuild = false
 
     private var textRenderer: TextRenderer
 
-    private lateinit var animator: Animator
+    private var animator: Animator
 
     private var time = 0f
+
+    // keys
+    private var wPressed = false
+    private var aPressed = false
+    private var sPressed = false
+    private var dPressed = false
+
+    private var qPressed = false
+    private var ePressed = false
+    private var spacePressed = false
+    private var ctrlPressed = false
+
+    private var xPos = 0.0
+    private var yPos = 0.0
+    private var zPos = 0.0
+    private var wPos = 0.0
+
+    /*
+    world orientation
+    x y plane is parallel to terrain
+    z is up
+    w is w :D
+     */
+
+    /*
+    view orientation
+    x is left right
+    y is forward backward
+    z is up down
+     */
+
+    // these are in view orientation, and are applied in order
+    private var xyRotation = 0.0 // "yaw"
+    private var yzRotation = 0.0 // "pitch"
+    private var ywRotation = 0.0 // ???
+
 
     init {
         canvas.addGLEventListener(this)
@@ -210,7 +250,7 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
         // draw slices
         val sliceWidth = width / slices
         for (i in 0 until slices) {
-            val seperatorOffset = if (drawSeperator) i else 0
+            val seperatorOffset = if (drawSeparator) i else 0
             gl.glBindBuffer(GL2ES3.GL_PIXEL_UNPACK_BUFFER, pboBuffers!![i].GLID)
             gl.glRasterPos2i(sliceWidth * i + seperatorOffset, 0)
             gl.glDrawPixels(sliceWidth, height, GL.GL_BGRA, GL.GL_UNSIGNED_BYTE, 0)
@@ -275,6 +315,35 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
         val keyAdapter = object : KeyAdapter() {
             override fun keyPressed(e: KeyEvent) {
                 println("Key event: ${e.keyChar}") // there is also keyCode
+                when (e.keyChar) {
+                    'w' -> wPressed = true
+                    'a' -> aPressed = true
+                    's' -> sPressed = true
+                    'd' -> dPressed = true
+                    'q' -> qPressed = true
+                    'e' -> ePressed = true
+                }
+
+                when (e.keyCode) {
+                    VK_SPACE -> spacePressed = true
+                    VK_CONTROL -> ctrlPressed = true
+                }
+            }
+
+            override fun keyReleased(e: KeyEvent) {
+                when (e.keyChar) {
+                    'w' -> wPressed = false
+                    'a' -> aPressed = false
+                    's' -> sPressed = false
+                    'd' -> dPressed = false
+                    'q' -> qPressed = false
+                    'e' -> ePressed = false
+                }
+
+                when (e.keyCode) {
+                    VK_SPACE -> spacePressed = false
+                    VK_CONTROL -> ctrlPressed = false
+                }
             }
         }
 
@@ -284,6 +353,14 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
     }
 
     private fun compute() {
+        // compute initial direction vector
+//        var  = cos(xyRotation)
+//        var yDir = sin(xyRotation)
+//        var zDir = 0.0
+//
+//        yz
+
+
         val sliceWidth = (width / slices.toFloat()).toInt()
 
         // release all old events, you can't reuse events in OpenCL
