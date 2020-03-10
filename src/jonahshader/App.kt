@@ -168,7 +168,8 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
                 configure.forDevice(device)
             }
             println(configure)
-            configure.withOption(CLProgram.CompilerOptions.FAST_RELAXED_MATH).build()
+//            configure.withOption(CLProgram.CompilerOptions.FAST_RELAXED_MATH).build() // can't do FAST_RELAXED_MATH because it makes sin too crappy
+            configure.build()
         }
         rebuild = false
         for (i in kernels.indices) {
