@@ -222,7 +222,7 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
         for (i in 0 until slices) {
             kernels[i]!!.setForce32BitArgs(true)
 //                .setArg(2, )
-                .setArg(3, pboBuffers!![i])
+                .setArg(6, pboBuffers!![i])
         }
     }
 
@@ -353,14 +353,6 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
     }
 
     private fun compute() {
-        // compute initial direction vector
-//        var  = cos(xyRotation)
-//        var yDir = sin(xyRotation)
-//        var zDir = 0.0
-//
-//        yz
-
-
         val sliceWidth = (width / slices.toFloat()).toInt()
 
         // release all old events, you can't reuse events in OpenCL
@@ -368,7 +360,7 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
 
         // start computation
         for (i in 0 until slices) {
-            kernels[i]!!.putArg(width).putArg(height)
+            kernels[i]!!.putArg(width).putArg(height).putArg(xyRotation.toFloat()).putArg(yzRotation.toFloat()).putArg(ywRotation.toFloat())
                 .putArg(time).rewind()
 
             // aquire GL objects, and enqueue a kernel with a probe from the list

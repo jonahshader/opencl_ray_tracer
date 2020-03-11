@@ -20,11 +20,19 @@ float getOctave(float x, float y, float z, float w,
 
 kernel void renderer(
   const int width, const int height,
+  const float xyRot, const float yzRot,
+  const float ywRot,
   const float t, global uint* output
   )
 {
   unsigned int x = get_global_id(0);
   unsigned int y = get_global_id(1);
+
+  float2 center = (float2)(width/2.0f, height/2.0f);
+
+  float4 direction = (float4)((x-center.x)/center.x, 1.0f, (y-center.y)/center.y, 0.0f);
+  direction = normalize(direction);
+
 
   char brightness = (char)(getOctave(x, y, t * 100.0f, 0.0f, 0.05f, 1.0f, 2, 3, 4, 5) * 255.0f);
   output[y * width + x] = brightness + (brightness << 8) + (brightness << 16) + 0xff000000;
@@ -40,6 +48,7 @@ float posToVal(int x, int y, int z, int w, int xOffset, int yOffset, int zOffset
 float smooth(float input)
 {
   return .5f * (1.0f - cos(M_PI * input));
+  // return input > 0.5f ? 1.0f : 0.0f;
 }
 
 float linear(float x, float x0, float x1)
