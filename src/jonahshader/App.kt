@@ -18,13 +18,11 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.sin
+import kotlin.math.*
 
 class App(private var width: Int, private var height: Int) : GLEventListener {
     companion object {
-        const val MAX_PARALLELISM_LEVEL = 8
+        const val MAX_PARALLELISM_LEVEL = 1
     }
 
     private var clContext: CLGLContext? = null
@@ -59,8 +57,14 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
 
     private var xPos = 0.0
     private var yPos = 0.0
-    private var zPos = 0.0
+    private var zPos = 50.0
     private var wPos = 0.0
+
+    private var bigIterations = 45
+    private var smallIterations = 5
+    private var bigParam = 10.0
+    private var smallParam = 25.0
+
 
     /*
     world orientation
@@ -221,8 +225,7 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
     private fun setKernelConstants() {
         for (i in 0 until slices) {
             kernels[i]!!.setForce32BitArgs(true)
-//                .setArg(2, )
-                .setArg(6, pboBuffers!![i])
+                .setArg(14, pboBuffers!![i])
         }
     }
 
@@ -322,6 +325,21 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
                     'd' -> dPressed = true
                     'q' -> qPressed = true
                     'e' -> ePressed = true
+                    'z' -> bigIterations++
+                    'x' -> bigIterations--
+                    'c' -> smallIterations++
+                    'v' -> smallIterations--
+                    'b' -> bigParam *= 1.25
+                    'n' -> bigParam /= 1.25
+                    'm' -> smallParam += .25
+                    ',' -> smallParam -= .25
+                    'p' -> {
+                        // print parameters
+                        println("big iterations:   $bigIterations")
+                        println("small iterations: $smallIterations")
+                        println("big param:        $bigParam")
+                        println("small param:      $smallParam")
+                    }
                 }
 
                 when (e.keyCode) {
@@ -353,6 +371,38 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
     }
 
     private fun compute() {
+        val maxDim = max(height, width).toDouble()
+
+        // raytracer related stuff
+        if (canvas.hasFocus()) {
+            try {
+                yzRotation = -2.0 * PI * (canvas.mousePosition.y * 2 - height.toDouble()) / maxDim
+                xyRotation = -2.0 * PI * (canvas.mousePosition.x * 2 - width.toDouble()) / maxDim
+            } catch (e: NullPointerException) {
+                println("mouse not found or something")
+            }
+
+            var keyboardX = (if (aPressed) -1.0 else 0.0) + (if (dPressed) 1.0 else 0.0)
+            var keyboardY = (if (sPressed) -1.0 else 0.0) + (if (wPressed) 1.0 else 0.0)
+            var keyboardZ = (if (ctrlPressed) -1.0 else 0.0) + (if (spacePressed) 1.0 else 0.0)
+
+            keyboardX *= 0.5
+            keyboardY *= 0.5
+            keyboardZ *= 0.5
+
+            val angle = atan2(keyboardY, keyboardX) + xyRotation
+            val mag = sqrt(keyboardX.pow(2) + keyboardY.pow(2))
+            keyboardX = cos(angle) * mag
+            keyboardY = sin(angle) * mag
+
+            xPos += keyboardX
+            yPos += keyboardY
+            zPos += keyboardZ
+
+        }
+
+
+        // non raytracer related stuff
         val sliceWidth = (width / slices.toFloat()).toInt()
 
         // release all old events, you can't reuse events in OpenCL
@@ -360,7 +410,10 @@ class App(private var width: Int, private var height: Int) : GLEventListener {
 
         // start computation
         for (i in 0 until slices) {
-            kernels[i]!!.putArg(width).putArg(height).putArg(xyRotation.toFloat()).putArg(yzRotation.toFloat()).putArg(ywRotation.toFloat())
+            kernels[i]!!.putArg(width).putArg(height)
+                .putArg(xyRotation.toFloat()).putArg(yzRotation.toFloat()).putArg(ywRotation.toFloat())
+                .putArg(xPos.toFloat()).putArg(yPos.toFloat()).putArg(zPos.toFloat()).putArg(wPos.toFloat())
+                .putArg(bigIterations).putArg(smallIterations).putArg(bigParam.toFloat()).putArg(smallParam.toFloat())
                 .putArg(time).rewind()
 
             // aquire GL objects, and enqueue a kernel with a probe from the list
