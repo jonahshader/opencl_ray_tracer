@@ -64,7 +64,7 @@ kernel void renderer(
   for (float trace = 1.0f; trace < 100.0f; trace += dt)
   {
     float4 movedPoint = position + (direction * trace);
-    float terrainVal = terrain(movedPoint.x, movedPoint.y, movedPoint.z, 0.0f, 7);
+    float terrainVal = terrain(movedPoint.x, movedPoint.y, movedPoint.z, 0.0f, 10 - trace / 19.0f);
     if (terrainVal > 0.0f)
     {
       // float resT = trace - dt + dt * ()
@@ -72,7 +72,7 @@ kernel void renderer(
       movedPoint += direction * interpDist;
 
       red = 255;
-      red *= getFractal(movedPoint.x, movedPoint.y, movedPoint.z * 5.0f, 0.0f, 1.0f, 1.0f, 5, 21298);
+      red *= getFractal(movedPoint.x, movedPoint.y, movedPoint.z * 5.0f, 0.0f, 0.5f, 1.0f, 2, 21298);
       green = red;
       blue = red;
       break;
