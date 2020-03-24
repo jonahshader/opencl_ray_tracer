@@ -59,61 +59,84 @@ kernel void renderer(
   uchar green = 0;
   uchar blue = 0;
 
-  float rayMoveMultiplier = terrain(position.x, position.y, position.z, position.w, 4);
-  rayMoveMultiplier = rayMoveMultiplier > 0.0f ? rayMoveMultiplier : -rayMoveMultiplier;
-
-  int currentQuality = 1;
-  int i;
-  for (i = 0; i < bigIterations; i++)
+  float dt = 0.03f;
+  float pterr = 0.0f;
+  for (float trace = 1.0f; trace < 100.0f; trace += dt)
   {
-    float terrainVal = terrain(position.x, position.y, position.z, position.w, currentQuality);
+    float4 movedPoint = position + (direction * trace);
+    float terrainVal = terrain(movedPoint.x, movedPoint.y, movedPoint.z, 0.0f, 7);
     if (terrainVal > 0.0f)
     {
-      if (currentQuality > 6)
-      {
-        // brightness = ((45 - i) / 45.0f) * 255.0f;
-        float4 dist = position - (float4)(xPos, yPos, zPos, wPos);
-        // dist.magnitud
-        red = 255.0f / (1.0f + length(dist) * .01f);
-        // red *= (.5f + .5f * sin(position.x) * sin(position.y));
-        red *= getFractal(position.x, position.y, position.z, 0.0f, 1.0f, 1.0f, 7, 512598);
-        green = red;
-        blue = red;
-        // brightness = (.5f + .5f * sin(length(dist))) * 255.0f;
-        // brightness = max(brightness, (char)(pow(i / 45.0f, 2.0f) * 255.0f));
-        break;
-      }
-      else
-      {
-        float distToMove = pow(0.5f, currentQuality - 1) * 50.0f;
-        if (terrainVal > 0.0f) distToMove = -distToMove;
-        position = position + direction * distToMove;
-        terrainVal = terrain(position.x, position.y, position.z, position.w, currentQuality);
-        if (terrainVal < 0.0f) // if it actually got out of the ground with the above move, then increment currentQuality because it is ready for finer control
-        {
-          currentQuality++;
-        }
-      }
+      // float resT = trace - dt + dt * ()
+      float interpDist = -dt*pterr/(terrainVal-pterr);
+      movedPoint += direction * interpDist;
 
-    }
-    else if (terrainVal < -30.0f)
-    {
-      // hit sky
-      red = 30;
-      green = 80;
-      blue = 150;
+      red = 255;
+      red *= getFractal(movedPoint.x, movedPoint.y, movedPoint.z * 5.0f, 0.0f, 1.0f, 1.0f, 5, 21298);
+      green = red;
+      blue = red;
       break;
     }
-    else
-    {
-      float distToMove = pow(0.5f, currentQuality - 1) * 50.0f;
-      if (terrainVal > 0.0f) distToMove = -distToMove;
-      // float distToMove = -terrainVal * 50.0f;
-      // if (terrainVal > 0) terrainVal *= 1.1f;
-      // else terrainVal -= 5.1f;
-      position = position + direction * distToMove;
-    }
+
+    pterr = terrainVal;
+    dt = 0.03f * trace;
   }
+
+  // int currentQuality = 1;
+  // int i;
+  // for (i = 0; i < bigIterations; i++)
+  // {
+  //   float terrainVal = terrain(position.x, position.y, position.z, position.w, currentQuality);
+  //   if (terrainVal > 0.0f)
+  //   {
+  //     if (currentQuality > 6)
+  //     {
+  //       // brightness = ((45 - i) / 45.0f) * 255.0f;
+  //       float4 dist = position - (float4)(xPos, yPos, zPos, wPos);
+  //       // dist.magnitud
+  //       red = 255.0f / (1.0f + length(dist) * .01f);
+  //       // red *= (.5f + .5f * sin(position.x) * sin(position.y));
+  //       red *= getFractal(position.x, position.y, position.z, 0.0f, 1.0f, 1.0f, 7, 512598);
+  //       green = red;
+  //       blue = red;
+  //       // brightness = (.5f + .5f * sin(length(dist))) * 255.0f;
+  //       // brightness = max(brightness, (char)(pow(i / 45.0f, 2.0f) * 255.0f));
+  //       break;
+  //     }
+  //     else
+  //     {
+  //       float distToMove = pow(0.5f, currentQuality - 1) * 50.0f;
+  //       if (terrainVal > 0.0f) distToMove = -distToMove;
+  //       position = position + direction * distToMove;
+  //       terrainVal = terrain(position.x, position.y, position.z, position.w, currentQuality);
+  //       if (terrainVal < 0.0f) // if it actually got out of the ground with the above move, then increment currentQuality because it is ready for finer control
+  //       {
+  //         currentQuality++;
+  //       }
+  //     }
+  //
+  //   }
+  //   else if (terrainVal < -30.0f)
+  //   {
+  //     // hit sky
+  //     red = 30;
+  //     green = 80;
+  //     blue = 150;
+  //     break;
+  //   }
+  //   else
+  //   {
+  //     float distToMove = pow(0.5f, currentQuality - 1) * 50.0f;
+  //     if (terrainVal > 0.0f) distToMove = -distToMove;
+  //     // float distToMove = -terrainVal * 50.0f;
+  //     // if (terrainVal > 0) terrainVal *= 1.1f;
+  //     // else terrainVal -= 5.1f;
+  //     position = position + direction * distToMove;
+  //   }
+  // }
+
+  // float rayMoveMultiplier = terrain(position.x, position.y, position.z, position.w, 4);
+  // rayMoveMultiplier = rayMoveMultiplier > 0.0f ? rayMoveMultiplier : -rayMoveMultiplier;
 
   // for (int i = 0; i < bigIterations; i++)
   // {
@@ -265,7 +288,7 @@ unsigned int hash(unsigned int x)
 
 float terrain(float x, float y, float z, float w, int quality)
 {
-  float val = getFractal(x, y, z, 0.0f, 0.01f, 1.0f, quality, 5314);
+  float val = getFractal(x, y, z, 0.0f, 0.01f, 1.0f, quality, 15314);
   val += z * -0.005;
   return val;
 }
